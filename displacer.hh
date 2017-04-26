@@ -17,6 +17,7 @@ class Displacer {
     vector<int>* get_displacements_h();
     void search_displacements();
 
+    void reorder_displacements(vector<int>& indices);
     void write_displacements(string displacements_file); 
     void read_displacements(string displacements_file); 
     

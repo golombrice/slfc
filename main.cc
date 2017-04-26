@@ -175,6 +175,7 @@ int main(int argc, char** argv)
     compress_with_jp2(A_icjc, string(center_fn));
 
     Image<int>* BqF = 0;
+    //Image<int>* BqFs = 0;
     if( parser.cmdOptionExists("-p") ) {
       string BqF_filename = parser.getCmdOption("-p");
       BqF = new Image< int >(NR,NC,1);
@@ -191,11 +192,28 @@ int main(int argc, char** argv)
         h_r = atoi( parser.getCmdOption("-mhr").c_str() );
       }
       cout << "Segmenting center view with mean shift parameters " << h_s << " " << h_r << endl;
-      Image<int>* BqFs = segment(A_icjc, h_s, h_r);
+      BqF = segment(A_icjc, h_s, h_r);
 
+    }
+
+    vector< Displacer* > displacers;
+    displacers.reserve(225);
+    for(int n = 1; n < 225; ++n ) {
+      cout << "Searching displacements for view " << n << endl;
+      // 1. read image A_ij
+      Image< uint8_t >* A_ij= views.at(n);
+      // 2. search displacements
+      Displacer* displacer = new Displacer(A_icjc, A_ij, BqF);
+      displacers.at(n) = displacer;
+      displacer->search_displacements();
+    }
+
+    if( !parser.cmdOptionExists("-p") ) {
       cout << "Reordering the labels of the segmentation according to depth" << endl;
-      BqF = order_segmentation_by_depth(BqFs, views);
-      delete BqFs;
+      
+      Image< int >* BqFn = order_segmentation_by_depth(BqF, views, displacers);
+      delete BqF;
+      BqF = BqFn;
     }
 
     bool optimize_regions = parser.cmdOptionExists("-opt");
@@ -231,14 +249,13 @@ int main(int argc, char** argv)
 
     Image< int >* ErrorImagep = new Image<int>(NR,NC,3);
     Image< int >* ErrorImagec = new Image<int>(NR,NC,3);
+
     for(int n = 1; n < 225; ++n ) {
       cout << "Encoding view " << n << endl;
       // 1. read image A_ij
       Image< uint8_t >* A_ij= views.at(n);
-      // 2. search displacements
-      Displacer* displacer = new Displacer(A_icjc, A_ij, BqF);
-      displacer->search_displacements();
       string displacement_fn_n = append_string(displacement_fn, n);
+      displacer = displacers.at(n);
       displacer->write_displacements(displacement_fn_n);
       // 3. get BqFSV
       displacer->propagateRegions();
@@ -321,7 +338,7 @@ void merge_center(Image< int >* BqF, vector< vector< int > >& merged_regions) {
   }
 }
 
-Image< int >* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint8_t >* >& views) {
+Image< int >* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint8_t >* >& views, vector< Displacer* >& displacers ) {
     // find displacements for a certain column of views
 
     //cout << "searching displacements" << endl;
@@ -348,9 +365,10 @@ Image< int >* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint
           n = get_n(iv,jv);
         }
         Image< uint8_t >* A_ij= views.at(n);
-        Displacer* displacer = new Displacer(A_icjc, A_ij, BqF);
-        displacer->search_displacements();
-        displacers.push_back(displacer);
+        //Displacer* displacer = new Displacer(A_icjc, A_ij, BqF);
+        //displacer->search_displacements();
+        //displacers.push_back(displacer);
+        Displacer* displacer = displacers.at(n);
         vector<int>* disp_h = displacer->get_displacements_h();
         if(mean_displacement->size() == 0){
           for( int ii = 0; ii < disp_h->size(); ++ii ) {
@@ -416,10 +434,18 @@ Image< int >* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint
     }
     //BqFn->writeImage("labels2.txt");
 
-    for(int i = 0; i < displacers.size(); ++i) {
-      if(displacers.at(i) != 0) {
-        delete displacers.at(i);
-      }
+   // for(int i = 0; i < displacers.size(); ++i) {
+   //   if(displacers.at(i) != 0) {
+   //     delete displacers.at(i);
+   //   }
+   // }
+
+    vector<int> sort_indices;
+    for(int i = 0; i < ks_p.size(); ++i ) {
+      sort_indices.push_back(ks_p.at(i).second-1);
+    }
+    for(int i = 0; i < 225; ++i ) {
+      displacers.at(i)->reorder_displacements(sort_indices);
     }
 
     return BqFn;

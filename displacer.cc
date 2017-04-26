@@ -29,6 +29,19 @@ vector<int>* Displacer::get_displacements_h() {
   return best_disp_h_;
 }
 
+void Displacer::reorder_displacements(vector<int>& indices) {
+  best_disp_h_new_ = new vector<int>();
+  best_disp_v_new_ = new vector<int>();
+  for( int i = 0; i < indices.size(); ++i ) {
+    best_disp_h_new_->push_back(best_disp_h_->at(indices(i)));
+    best_disp_v_new_->push_back(best_disp_h_->at(indices(i)));
+  }
+  delete best_disp_h_;
+  delete best_disp_v_;
+  best_disp_h_ = best_disp_h_new_;
+  best_disp_v_ = best_disp_v_new_;
+}
+
 void Displacer::write_displacements(string displacements_file) {
   //FILE* fid = fopen(displacements_file.c_str(), "wb");
   //for(int i = 0; i < best_disp_h_->size(); ++i ) {
