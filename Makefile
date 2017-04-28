@@ -9,8 +9,8 @@ DEPS = image.hh avi_reader.hh
 %.o: %.cc $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-compressor: main.o adaptive_coder.o bit_output.o bit_input.o golomb_coder.o adaptive_binary_coder.o displacer.o encoder.o coder.o decoder.o
-	$(CC) -o compressor main.o adaptive_coder.o bit_output.o bit_input.o golomb_coder.o adaptive_binary_coder.o displacer.o encoder.o coder.o decoder.o cerv/libcerv.a segm/libms.a $(CFLAGS) -lopenjp2 #-llars_wrapper -llars_main 
+slfc: main.o adaptive_coder.o bit_output.o bit_input.o golomb_coder.o adaptive_binary_coder.o displacer.o encoder.o coder.o decoder.o
+	$(CC) -o slfc main.o adaptive_coder.o bit_output.o bit_input.o golomb_coder.o adaptive_binary_coder.o displacer.o encoder.o coder.o decoder.o cerv/libcerv.a segm/libms.a $(CFLAGS) -lopenjp2 #-llars_wrapper -llars_main 
 
 clean:
 	rm *.o

@@ -42,7 +42,8 @@ Image<int>* decompress_with_jp2_BqF(string filename);
 void cerv_compress(Image< int >* BqF, string fn, string fn_labels);
 void cerv_decompress(Image< int >* BqF, string fn, string fn_labels);
 Image<int>* segment(Image< uint8_t >* A, const int h_s, const int h_r);
-Image<int>* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint8_t >* >& views);
+//Image<int>* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint8_t >* >& views);
+Image< int >* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint8_t >* >& views, vector< Displacer* >& displacers );
 void merge_center(Image< int >* BqF, vector< vector< int > >& merged_regions);
 bool create_zip(vector<string>& files_to_archive, string zip_filename);
 bool zip_extract(string zip_filename);
@@ -196,9 +197,9 @@ int main(int argc, char** argv)
 
     }
 
-    vector< Displacer* > displacers;
-    displacers.reserve(225);
-    for(int n = 1; n < 225; ++n ) {
+    vector< Displacer* > displacers(225);
+    //displacers.reserve(225);
+    for(int n = 0; n < 225; ++n ) {
       cout << "Searching displacements for view " << n << endl;
       // 1. read image A_ij
       Image< uint8_t >* A_ij= views.at(n);
@@ -210,7 +211,6 @@ int main(int argc, char** argv)
 
     if( !parser.cmdOptionExists("-p") ) {
       cout << "Reordering the labels of the segmentation according to depth" << endl;
-      
       Image< int >* BqFn = order_segmentation_by_depth(BqF, views, displacers);
       delete BqF;
       BqF = BqFn;
@@ -255,11 +255,15 @@ int main(int argc, char** argv)
       // 1. read image A_ij
       Image< uint8_t >* A_ij= views.at(n);
       string displacement_fn_n = append_string(displacement_fn, n);
-      displacer = displacers.at(n);
+      Displacer* displacer = displacers.at(n);
+      cout << "lol" << endl;
       displacer->write_displacements(displacement_fn_n);
       // 3. get BqFSV
+      cout << "lol" << endl;
       displacer->propagateRegions();
+      cout << "lol" << endl;
       Image<int>* BqFSV = displacer->get_BqFSV();
+      cout << "lol" << endl;
       if( parser.cmdOptionExists("-s") ) {
         BqFSV->writeImage(input_file + "_BqFSV.txt", "ab");
         delete displacer; 
@@ -346,7 +350,7 @@ Image< int >* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint
     int NC = BqF->size().width;
 
     Image< uint8_t >* A_icjc = views.at(0);
-    vector< Displacer* > displacers;
+    //vector< Displacer* > displacers;
     vector< vector< double >* > mean_disp_for_all;
     vector< int > x_opts;
     for(int jv = -5; jv <= 5; ++jv) {
@@ -445,7 +449,7 @@ Image< int >* order_segmentation_by_depth(Image< int >* BqF, vector< Image< uint
       sort_indices.push_back(ks_p.at(i).second-1);
     }
     for(int i = 0; i < 225; ++i ) {
-      displacers.at(i)->reorder_displacements(sort_indices);
+      displacers.at(i)->reorder_displacements(sort_indices, BqFn);
     }
 
     return BqFn;
